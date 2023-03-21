@@ -1,0 +1,27 @@
+﻿@page "/"
+@inject Chat.Data.ChatService chatService
+
+<PageTitle>Index</PageTitle>
+
+<InputTextArea @bind-Value=inputString />
+<button @onclick=OnClick disabled="@isDisabled">送信</button>
+
+@foreach (var message in messages)
+{
+    <div>@message</div>
+    <hr />
+}
+
+@code{
+    private List<string> messages = new();
+    private string inputString = "";
+    private bool isDisabled = false;
+
+    private async Task OnClick()
+    {
+        isDisabled = true;
+        string result = await chatService.GetChatResponseAsync(inputString);
+        messages.Add(result);
+        isDisabled = false;
+    }
+}
