@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text;
+using System.Text.Json.Serialization;
+using System.IO;
 
 namespace Chat.Data
 {
@@ -8,6 +10,8 @@ namespace Chat.Data
         private readonly string? _apiKey = "";
         private readonly string _endpoint = "https://api.openai.com/v1/chat/completions";
         private readonly IHttpClientFactory _httpClientFactory;
+
+        public List<Message> Messages { get; set; } = new List<Message>();
 
         public ChatService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
@@ -18,15 +22,23 @@ namespace Chat.Data
         //OpenAIにリクエストを送るメソッド
         public async Task<string> GetChatResponseAsync(string input)
         {
+            //inputから改行を除く
+            input = input.Replace("\n", "");
+
             //httpクライアントを生成
             HttpClient client = _httpClientFactory.CreateClient();
 
             //OpenAIのエンドポイントに送るリクエストを入力
             string request = "{\"model\":\"gpt-3.5-turbo\",\"messages\":[{\"role\": \"user\", \"content\": \"" + input + "\"}]}";
+            var jsoncontent = JsonContent.Create(new
+            {
+                model = "gpt-3.5-turbo",
+                messages = Messages
+            });
 
             //リクエストを送る
             HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, _endpoint);
-            requestMessage.Content = new StringContent(request, Encoding.UTF8, "application/json");
+            requestMessage.Content = jsoncontent;// new StringContent(request, Encoding.UTF8, "application/json");
             requestMessage.Headers.Add("Authorization", "Bearer " + _apiKey);
             HttpResponseMessage response = await client.SendAsync(requestMessage);
 
@@ -43,4 +55,19 @@ namespace Chat.Data
             }
         }
      }
+
+    public class Message
+    {
+        public Message(string role, string content)
+        {
+            Role = role;
+            Content = content;
+        }
+
+        [JsonPropertyName("role")]
+        public string Role { get; set; }
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; }
+    }
 }

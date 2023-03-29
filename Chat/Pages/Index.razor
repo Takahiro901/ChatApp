@@ -1,27 +1,54 @@
 ﻿@page "/"
+@using System.Diagnostics;
 @inject Chat.Data.ChatService chatService
 
 <PageTitle>Index</PageTitle>
 
-<InputTextArea @bind-Value=inputString />
-<button @onclick=OnClick disabled="@isDisabled">送信</button>
+<div id="wrapper">
+    <div id="messages">
+    @foreach (var message in messages)
+    {
+        <div>@message</div>
+        <hr />
+    }
+    </div>
+    <div id="inputWrapper">
+        <div id="inputTextWrapper">
+            <input type="text" id="inputText" @bind="inputString" @bind:event="oninput" @onkeydown="KeyHandler"/>
+        </div>
+        <div id="buttonWrapper">
+            <button @onclick=OnClickAsync disabled="@(isDisabled || inputString == "")">送信</button>
+        </div>
+        
+    </div>
+</div>
 
-@foreach (var message in messages)
-{
-    <div>@message</div>
-    <hr />
-}
+
 
 @code{
     private List<string> messages = new();
     private string inputString = "";
     private bool isDisabled = false;
 
-    private async Task OnClick()
+    private async Task OnClickAsync()
     {
+        if(inputString == "") return;
+        string question = inputString;
+        inputString = "";
         isDisabled = true;
-        string result = await chatService.GetChatResponseAsync(inputString);
+        messages.Add(question);
+        chatService.Messages.Add(new Data.Message("user",question));
+        string result = await chatService.GetChatResponseAsync(question);
         messages.Add(result);
+        chatService.Messages.Add(new Data.Message("assistant", result));
         isDisabled = false;
+    }
+
+    private async Task KeyHandler(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnClickAsync();
+        }
     }
 }
