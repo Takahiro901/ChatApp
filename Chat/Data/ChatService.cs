@@ -20,16 +20,12 @@ namespace Chat.Data
         }
 
         //OpenAIにリクエストを送るメソッド
-        public async Task<string> GetChatResponseAsync(string input)
+        public async Task<string> GetChatResponseAsync()
         {
-            //inputから改行を除く
-            input = input.Replace("\n", "");
-
             //httpクライアントを生成
             HttpClient client = _httpClientFactory.CreateClient();
 
             //OpenAIのエンドポイントに送るリクエストを入力
-            string request = "{\"model\":\"gpt-3.5-turbo\",\"messages\":[{\"role\": \"user\", \"content\": \"" + input + "\"}]}";
             var jsoncontent = JsonContent.Create(new
             {
                 model = "gpt-3.5-turbo",
@@ -42,16 +38,23 @@ namespace Chat.Data
             requestMessage.Headers.Add("Authorization", "Bearer " + _apiKey);
             HttpResponseMessage response = await client.SendAsync(requestMessage);
 
-            //Choicesの中のcontenを取得
-            var content = await response.Content.ReadAsStringAsync();
-            var obj = JsonNode.Parse(content)!["choices"]![0]!["message"]!["content"];
-            if(obj != null)
+            if(response.IsSuccessStatusCode)
             {
-                return obj.ToString();
+                //Choicesの中のcontenを取得
+                var content = await response.Content.ReadAsStringAsync();
+                var obj = JsonNode.Parse(content)!["choices"]![0]!["message"]!["content"];
+                if (obj != null)
+                {
+                    return obj.ToString();
+                }
+                else
+                {
+                    return "反応がありませんでした";
+                }
             }
             else
             {
-                return "反応がありませんでした";
+                return "エラーが発生しました。";
             }
         }
      }
